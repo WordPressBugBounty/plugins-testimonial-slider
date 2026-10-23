@@ -3,7 +3,7 @@ Contributors: slidervilla, tejaswini, DavidAnderson
 Tags: testimonial, slider, slideshow, feedback, content slider, responsive, widget, content, jquery, gallery, custom post type, sidebar, wpmu
 Donate link: https://david.dw-perspective.org.uk/donate
 Requires at least: 4.2
-Tested up to: 6.9
+Tested up to: 7.1
 Stable tag: 1.3.3
 License: GPLv2 or later
 
