@@ -22,7 +22,7 @@ function testimonial_process_set_requests(){
 	$cntr='';
 	if(isset($_GET['scounter'])) $cntr = (int)$_GET['scounter'];
 	
-	if(isset($_POST['create_set'])){
+	if(isset($_POST['create_set']) && !empty($_POST['_testimonial_create_set_nonce']) && wp_verify_nonce($_POST['_testimonial_create_set_nonce'], 'testimonial_create_set')){
 		if ('Create New Settings Set' === $_POST['create_set']) {
 		  $scounter++;
 		  update_option('testimonial_slider_scounter',$scounter);
@@ -36,7 +36,7 @@ function testimonial_process_set_requests(){
 	}
 
 	//Export Settings
-	if(isset($_POST['export'])){
+	if(isset($_POST['export']) && !empty($_POST['_testimonial_export_nonce']) && wp_verify_nonce($_POST['_testimonial_export_nonce'], 'testimonial_export')){
 		if ($_POST['export']==='Export') {
 			@ob_end_clean();
 			
@@ -118,7 +118,7 @@ function testimonial_slider_settings_page() {
 		closedir($handle);
 	}
 	//Reset Settings
-	if (isset ($_POST['testimonial_reset_settings_submit'])) {
+	if (isset ($_POST['testimonial_reset_settings_submit']) && !empty($_POST['_testimonial_reset_settings_nonce']) && wp_verify_nonce($_POST['_testimonial_reset_settings_nonce'], 'testimonial_reset_settings')) {
 		if ( $_POST['testimonial_reset_settings']!='n' ) {
 		$testimonial_reset_settings=$_POST['testimonial_reset_settings'];
 		$options='testimonial_slider_options'.$cntr;
@@ -129,7 +129,7 @@ function testimonial_slider_settings_page() {
 			update_option($options,$new_settings_value);
 		}
 		elseif(!is_numeric($testimonial_reset_settings)){
-			$skin = (string)$testimonial_reset_settings;
+			$skin = (string) $testimonial_reset_settings;
 			$new_settings_value=$default_testimonial_slider_settings;
 			$skin_defaults_str='default_settings_'.$skin;
 			global ${$skin_defaults_str};
@@ -160,7 +160,7 @@ function testimonial_slider_settings_page() {
 		}
 	}
 	//Import Settings
-	if (isset ($_POST['import'])) {
+	if (isset ($_POST['import']) && !empty($_POST['_testimonial_import_nonce']) && wp_verify_nonce($_POST['_testimonial_import_nonce'], 'testimonial_import')) {
 		if ($_POST['import']==='Import') {
 			global $wpdb;
 			$imported_settings_message='';
@@ -171,15 +171,20 @@ function testimonial_slider_settings_page() {
 				$settings_arr=explode("\n",$imported_settings);
 				$slider_settings=array();
 				foreach($settings_arr as $settings_field){
+					$settings_field=trim($settings_field);
+					if ('' === $settings_field) continue;
 					$s=explode(',',$settings_field);
+					if (!isset($s[0]) || !isset($s[1])) continue;
 					$inner=explode('|',$s[1]);
 					if(count($inner)>1) $slider_settings[$s[0]]=$inner;
 					else $slider_settings[$s[0]]=$s[1];
 				}
 				$slider_settings['active_tab']=array('active_tabidx'=>'0','closed_sections'=>'');
+				// Sanitise every imported value before it is stored.
+				$slider_settings = testimonial_slider_sanitize_settings( $slider_settings );
 				$options='testimonial_slider_options'.$cntr;
 				
-				if( $slider_settings['slider_name'] == 'testimonial' )	{
+				if (isset($slider_settings['slider_name']) && 'testimonial' === $slider_settings['slider_name'])	{
 					update_option($options,$slider_settings);
 					/*$new_settings_msg='<div id="message" class="updated fade" style="clear:left;"><h3>'.__('Settings imported successfully ','testimonial-slider').'</h3></div>';*/
 					$imported_settings_message='<div style="clear:left;color:#006E2E;"><h3>'.__('Settings imported successfully ','testimonial-slider').'</h3></div>';
@@ -1116,6 +1121,7 @@ else
 <div id="saveResult"></div>
 <!--Form to reset Settings set-->
 <form style="float:left;" action="" method="post">
+<?php wp_nonce_field('testimonial_reset_settings', '_testimonial_reset_settings_nonce') ?>
 <table class="form-table">
 <tr valign="top">
 <th scope="row"><?php _e('Reset Settings to','testimonial-slider'); ?></th>
@@ -1162,6 +1168,7 @@ for($i=1;$i<=$scounter;$i++){
 <?php echo wp_kses_post($imported_settings_message); ?>
 <h3><?php _e('Import Settings Set by uploading a Settings File','testimonial-slider'); ?></h3>
 <form style="margin-right:10px;font-size:14px;" action="" method="post" enctype="multipart/form-data">
+<?php wp_nonce_field('testimonial_import', '_testimonial_import_nonce') ?>
 <input type="hidden" name="MAX_FILE_SIZE" value="30000" />
 <input type="file" name="settings_file" id="settings_file" style="font-size:13px;width:50%;padding:0 5px;" />
 <input type="submit" value="Import" name="import"  onclick="return confirmSettingsImport()" title="<?php _e('Import Settings from a file','testimonial-slider'); ?>" class="button-primary" />
@@ -1404,6 +1411,8 @@ else
 
 <?php $url = testimonial_sslider_admin_url( array( 'page' => 'testimonial-slider-admin' ) );?>
 <form style="margin-right:10px;font-size:14px;width:100%;" action="" method="post">
+<?php wp_nonce_field('testimonial_create_set', '_testimonial_create_set_nonce') ?>
+<?php wp_nonce_field('testimonial_export', '_testimonial_export_nonce') ?>
 <a href="<?php echo esc_url($url); ?>" title="<?php _e('Go to Sliders page where you can re-order the slide posts, delete the slides from the slider etc.','testimonial-slider'); ?>" class="svilla_button svilla_gray_button"><?php _e('Go to Sliders Admin','testimonial-slider'); ?></a>
 <input type="submit" class="svilla_button" value="Create New Settings Set" name="create_set"  onclick="return confirmSettingsCreate()" /> <br />
 <input type="submit" value="Export" name="export" title="<?php _e('Export this Settings Set to a file','testimonial-slider'); ?>" class="svilla_button" />
@@ -1460,16 +1469,169 @@ for($i=1;$i<=$scounter;$i++){
 <?php	
 }
 
+/**
+ * Sanitise an 'a' element attribute string.
+ *
+ * Only a small allow-list of harmless attributes is kept, so imported or
+ * saved values can never inject event handlers or other markup.
+ *
+ * @param string $value Raw attribute string, e.g. 'target="_blank" rel="nofollow"'.
+ * @return string Sanitised attribute string.
+ */
+function testimonial_slider_sanitize_link_attributes($value) {
+	$allowed = array('target', 'rel', 'class', 'title', 'id', 'download', 'hreflang', 'media', 'type');
+
+	$out = array();
+	foreach (wp_kses_hair((string) $value, wp_allowed_protocols()) as $name => $attr) {
+		if (in_array($name, $allowed, true)) {
+			$out[] = $attr['whole'];
+		}
+	}
+
+	return implode(' ', $out);
+}
+
+/**
+ * Sanitise a Testimonial Slider settings array.
+ *
+ * This runs on both the settings form (as the register_setting sanitize
+ * callback) and the settings import, so that stored values are always safe
+ * regardless of how they arrived. Numeric fields are cast, colours validated,
+ * known enumeration fields restricted to their allow-list, and everything
+ * else stripped of markup.
+ *
+ * @param mixed $settings Raw settings value.
+ * @return mixed Sanitised settings value.
+ */
+function testimonial_slider_sanitize_settings($settings) {
+	if (!is_array($settings)) {
+		return sanitize_text_field((string) $settings);
+	}
+
+	$numeric_fields = array(
+		'speed', 'time', 'no_posts', 'visible', 'scroll', 'width', 'iwidth',
+		'height', 'border', 'title_fsize', 'ptitle_fsize', 'psite_fsize',
+		'content_fsize', 'content_limit', 'star_size', 'navimg_w', 'navimg_h',
+		'avatar_radius', 'img_width', 'img_height', 'img_border', 'slider_id',
+		'reviewme', 'ver',
+	);
+
+	$color_fields = array(
+		'bg_color', 'brcolor', 'title_fcolor', 'ptitle_fcolor', 'psite_fcolor',
+		'content_fcolor', 'star_color', 'nav_color', 'img_brcolor',
+	);
+
+	$url_fields = array('default_avatar');
+
+	// Fields that may legitimately contain limited HTML; keep safe markup only.
+	$rich_fields = array('noscript', 'more');
+
+	$enum_fields = array(
+		'type'             => array('0', '1'),
+		'bg'               => array('0', '1'),
+		'prev_next'        => array('0', '1'),
+		'disable_autostep' => array('0', '1'),
+		'multiple_sliders' => array('0', '1'),
+		'shortcode'        => array('0', '1'),
+		'rand'             => array('0', '1'),
+		'show_star'        => array('0', '1'),
+		'show_avatar'      => array('0', '1'),
+		'fouc'             => array('0', '1'),
+		'crop'             => array('0', '1'),
+		'new'              => array('0', '1'),
+		'popup'            => array('0', '1'),
+		'disable_preview'  => array('0', '1'),
+		'support'          => array('0', '1'),
+		'title_from'       => array('0', '1'),
+		'preview'          => array('0', '1', '2'),
+		'navnum'           => array('0', '1', '2'),
+		'content_from'     => array('content'),
+		'avatar_shape'     => array('square', 'circle'),
+		'title_fstyle'     => array('bold', 'bold italic', 'italic', 'normal'),
+		'ptitle_fstyle'    => array('bold', 'bold italic', 'italic', 'normal'),
+		'psite_fstyle'     => array('bold', 'bold italic', 'italic', 'normal'),
+		'content_fstyle'   => array('bold', 'bold italic', 'italic', 'normal'),
+		'user_level'       => array('manage_options', 'edit_others_posts', 'publish_posts', 'edit_posts'),
+		'transition'       => array('scroll', 'fade', 'crossfade', 'cover', 'uncover'),
+		'easing'           => array(
+			'swing', 'easeInQuad', 'easeOutQuad', 'easeInOutQuad', 'easeInCubic',
+			'easeOutCubic', 'easeInOutCubic', 'easeInQuart', 'easeOutQuart',
+			'easeInOutQuart', 'easeInQuint', 'easeOutQuint', 'easeInOutQuint',
+			'easeInSine', 'easeOutSine', 'easeInOutSine', 'easeInExpo',
+			'easeOutExpo', 'easeInOutExpo', 'easeInCirc', 'easeOutCirc',
+			'easeInOutCirc', 'easeInElastic', 'easeOutElastic', 'easeInOutElastic',
+			'easeInBack', 'easeOutBack', 'easeInOutBack', 'easeInBounce',
+			'easeOutBounce', 'easeInOutBounce',
+		),
+	);
+
+	$clean = array();
+
+	foreach ($settings as $key => $value) {
+
+		// The importer stores the active tab as an array; flatten it to the
+		// scalar index that the rest of the plugin expects.
+		if ('active_tab' === $key) {
+			if (is_array($value)) {
+				$value = isset($value['active_tabidx']) ? $value['active_tabidx'] : '';
+			}
+			$clean[$key] = sanitize_text_field((string) $value);
+			continue;
+		}
+
+		// No other setting should be an array; reject anything that is.
+		if (is_array($value)) {
+			continue;
+		}
+
+		if (in_array($key, $numeric_fields, true)) {
+			$clean[$key] = (string) intval($value);
+			continue;
+		}
+
+		if (in_array($key, $color_fields, true)) {
+			$color = sanitize_hex_color((string) $value);
+			$clean[$key] = (null === $color) ? '' : $color;
+			continue;
+		}
+
+		if (in_array($key, $url_fields, true)) {
+			$clean[$key] = esc_url_raw((string) $value);
+			continue;
+		}
+
+		if (isset($enum_fields[$key])) {
+			$value = sanitize_text_field((string) $value);
+			$clean[$key] = in_array($value, $enum_fields[$key], true) ? $value : '';
+			continue;
+		}
+
+		if ('a_attr' === $key) {
+			$clean[$key] = testimonial_slider_sanitize_link_attributes((string) $value);
+			continue;
+		}
+
+		if (in_array($key, $rich_fields, true)) {
+			$clean[$key] = wp_kses_post((string) $value);
+			continue;
+		}
+
+		$clean[$key] = sanitize_text_field((string) $value);
+	}
+
+	return $clean;
+}
+
 function register_testimonial_settings() { // whitelist options
   $scounter=get_option('testimonial_slider_scounter');
   for($i=1;$i<=$scounter;$i++){
 	   if ($i==1){
-		  register_setting( 'testimonial-slider-group', 'testimonial_slider_options' );
+		  register_setting( 'testimonial-slider-group', 'testimonial_slider_options', array('sanitize_callback' => 'testimonial_slider_sanitize_settings') );
 	   }
 	   else {
 	      $group='testimonial-slider-group'.$i;
 		  $options='testimonial_slider_options'.$i;
-		  register_setting( $group, $options );
+		  register_setting( $group, $options, array('sanitize_callback' => 'testimonial_slider_sanitize_settings') );
 	   }
   }
 }

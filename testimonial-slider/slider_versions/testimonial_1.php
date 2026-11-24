@@ -400,7 +400,7 @@ function testimonial_get_inline_css($set='',$echo='0'){
 	if ($testimonial_slider_curr['title_fstyle'] == "bold" or $testimonial_slider_curr['title_fstyle'] == "bold italic" ){$slider_title_font = "bold";} else { $slider_title_font = "normal"; }
 	if ($testimonial_slider_curr['title_fstyle'] == "italic" or $testimonial_slider_curr['title_fstyle'] == "bold italic" ){$slider_title_style = "italic";} else {$slider_title_style = "normal";}
 	$sldr_title = $testimonial_slider_curr['title_text']; if(!empty($sldr_title)) { $slider_title_margin = "5px 0 10px 0"; } else {$slider_title_margin = "0";} 	
-	$testimonial_slider_css['sldr_title']=$style_start.'font-family:'. $title_fontg . ' '.$testimonial_slider_curr['title_font'].';font-size:'.$testimonial_slider_curr['title_fsize'].'px;font-weight:'.$slider_title_font.';font-style:'.$slider_title_style.';color:'.$testimonial_slider_curr['title_fcolor'].';margin:'.$slider_title_margin.''.$style_end;
+	$testimonial_slider_css['sldr_title']=$style_start.'font-family:'. esc_attr($title_fontg) . ' ' . esc_attr($testimonial_slider_curr['title_font']) . ';font-size:' . intval($testimonial_slider_curr['title_fsize']) . 'px;font-weight:' . esc_attr($slider_title_font) . ';font-style:' . esc_attr($slider_title_style) . ';color:' . esc_attr($testimonial_slider_curr['title_fcolor']) . ';margin:' . esc_attr($slider_title_margin) . $style_end;
 	//testimonial_slideri
 	if ($testimonial_slider_curr['bg'] == '1') { $testimonial_slideri_bg = "transparent";} else { $testimonial_slideri_bg = $testimonial_slider_curr['bg_color']; }
 	$nav_color=$testimonial_slider_curr['nav_color'];

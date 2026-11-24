@@ -133,7 +133,7 @@ function testimonial_slider_get_default($slider_handle,$r_array,$testimonial_sli
 		else $sldr_title = $testimonial_slider_curr['title_text']; 
 	} 
 	if(!empty($sldr_title)) { 
-	  $sldr_title = '<div class="sldr_title" '.$testimonial_slider_css['sldr_title'].'>'. $sldr_title .'</div>';
+	  $sldr_title = '<div class="sldr_title" '.$testimonial_slider_css['sldr_title'].'>'. esc_html($sldr_title) .'</div>';
 	}
 	/*---- End Slider Title----*/
 	// Scripts

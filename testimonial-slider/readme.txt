@@ -3,8 +3,8 @@ Contributors: slidervilla, tejaswini, DavidAnderson
 Tags: testimonial, slider, slideshow, feedback, content slider, responsive, widget, content, jquery, gallery, custom post type, sidebar, wpmu
 Donate link: https://david.dw-perspective.org.uk/donate
 Requires at least: 4.2
-Tested up to: 7.1
-Stable tag: 1.3.3
+Tested up to: 7.2
+Stable tag: 1.3.4
 License: GPLv2 or later
 
 Display your happy customers' Testimonials in a neat Responsive Slider 
@@ -98,11 +98,12 @@ Visit the plugin page (http://slidervilla.com/testimonial-slider/) to read more 
 Visit the plugin page (http://slidervilla.com/testimonial-slider/) for recent FAQs. N.B. The linked site is maintained by a previous maintainer. We cannot guarantee it will remain operative into the future.
 
 
-== Upgrade Notice ==
-
-1.3.3 : Fixes an authenticated content injection vulnerability for sites with untrusted content creators - see changelog for full details. A recommended update for all.
-
 == Changelog ==
+
+= 1.3.4 - (2026/Nov/24) =
+
+* SECURITY: Fixed a CSRF/stored XSS issue in the plugin's settings handlers. The settings import, reset, create-set and export handlers did not verify a WordPress nonce, and imported/saved settings values were stored without sanitisation and rendered without escaping, so a crafted settings import could store a script payload that executed both on the settings-page preview and for visitors of the front-end slider. The handlers now require a valid nonce, and settings are sanitised on input and escaped on output. Thanks to Berat Furkan Yaztürk (reported via WPScan / Automattic) for the responsible disclosure.
+* FIX: Un-break the de-installation file
 
 = 1.3.3 - (2024/May/02) =
 
@@ -197,3 +198,7 @@ Visit the plugin page (http://slidervilla.com/testimonial-slider/) for recent FA
 1. New: Template tag and Shortcodes to display Testimonials in list (one below/beside another).
 2. New: HTML tags and shortcodes will be retained in the Testimonials content
 3. Fix: WP Debug error fixes
+
+== Upgrade Notice ==
+1.3.4 : SECURITY - adds nonce (CSRF) protection to the settings handlers, and sanitises saved settings and escapes the slider title to prevent stored XSS. A recommended update for all.
+

@@ -1,5 +1,5 @@
 <?php
-if (define('ABSPATH')) die('No direct access.');
+if (!defined('WP_UNINSTALL_PLUGIN')) exit;
 //This plugin creates an entry in the options database. When the plugin will be deleted, this code will automatically delete the database entry from the options Wordpress table.
 delete_option('testimonial_db_version');
 if( !defined( 'RICH_TESTIMONIALS_PLUGIN_BASENAME' ) ) {

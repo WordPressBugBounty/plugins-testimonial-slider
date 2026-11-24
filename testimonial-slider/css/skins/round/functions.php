@@ -129,7 +129,7 @@ function testimonial_slider_get_round($slider_handle,$r_array,$testimonial_slide
 		else $sldr_title = $testimonial_slider_curr['title_text']; 
 	} 
 	if(!empty($sldr_title)) { 
-	  $sldr_title = '<div class="sldr_title" '.esc_attr($testimonial_slider_css['sldr_title']).'>'. htmlspecialchars($sldr_title) .'</div>';
+	  $sldr_title = '<div class="sldr_title" '.$testimonial_slider_css['sldr_title'].'>'. esc_html($sldr_title) .'</div>';
 	}
 	/*---- End Slider Title----*/
 	// Scripts
@@ -254,7 +254,7 @@ function testimonial_slider_get_round($slider_handle,$r_array,$testimonial_slide
 	$slider_html.=$script.' 
 	<noscript><p><strong>'. $testimonial_slider['noscript'] .'</strong></p></noscript>
 	<div id="'.$slider_handle.'_wrap" class="testimonial_slider testimonial_slider_set'. $set .' testimonial_slider__'.esc_attr($stylesheet).'" '.$testimonial_slider_css['testimonial_slider'].'>
-		'.htmlspecialchars($sldr_title).'
+		'.esc_html($sldr_title).'
 		'.$nav_buttons_top.'
 		'.$nav_top.'
 		<div id="'.$slider_handle.'" class="testimonial_slider_instance">
